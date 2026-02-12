@@ -18,12 +18,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/spotify" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/apple" options={{ headerShown: false }} />
-            <Stack.Screen name="room/[code]" options={{ title: 'Room' }} />
-          </Stack>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/spotify" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/apple" options={{ headerShown: false }} />
+          <Stack.Screen name="room/[code]" options={{ title: 'Room' }} />
+        </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
       </GestureHandlerRootView>

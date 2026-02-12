@@ -1,15 +1,12 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { settings } from '@/src/lib/settings';
 
-const SETTINGS = [
-  { id: 'account', title: 'Account', subtitle: 'Username, email, linked services' },
-  { id: 'playback', title: 'Playback', subtitle: 'Sync preferences and defaults' },
-  { id: 'privacy', title: 'Privacy', subtitle: 'Visibility and sharing controls' },
-  { id: 'notifications', title: 'Notifications', subtitle: 'Push, email, and alerts' },
-];
+const BLANK_PFP = require('@/assets/images/blank-pfp.jpg');
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -27,8 +24,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Ayaan</Text>
-          <Text style={styles.cardSubtitle}>@ayaan</Text>
+          <View style={styles.profileRow}>
+            <Image source={BLANK_PFP} style={styles.avatar} />
+            <View style={styles.profileText}>
+              <Text style={styles.cardTitle}>Ayaan</Text>
+              <Text style={styles.cardSubtitle}>@ayaan</Text>
+            </View>
+          </View>
           <Pressable style={[styles.primaryButton, { backgroundColor: theme.tint }]}>
             <Text style={styles.primaryButtonText}>Edit profile</Text>
           </Pressable>
@@ -39,8 +41,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.list}>
-          {SETTINGS.map((item) => (
-            <Pressable key={item.id} style={styles.listRow}>
+          {settings.map((item) => (
+            <Pressable
+              key={item.id}
+              style={styles.listRow}
+              onPress={() => {
+                router.push(item.href);
+              }}>
               <View style={styles.listText}>
                 <Text style={styles.listTitle}>{item.title}</Text>
                 <Text style={styles.listSubtitle}>{item.subtitle}</Text>
@@ -91,6 +98,19 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     color: '#6b7280',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileText: {
+    gap: 2,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
   },
   primaryButton: {
     marginTop: 8,

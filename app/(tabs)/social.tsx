@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,19 +11,22 @@ type Friend = {
   id: string;
   name: string;
   track: string;
+  artist: string;
   service: 'spotify' | 'apple';
 };
 
 const FRIENDS: Friend[] = [
-  { id: '1', name: 'Ayaan', track: 'Sunset Drive', service: 'spotify' },
-  { id: '2', name: 'Mia', track: 'Golden Hour', service: 'apple' },
-  { id: '3', name: 'Noah', track: 'Night City Lights', service: 'spotify' },
+  { id: '1', name: 'Ayaan', track: 'Sunset Drive', artist: 'Nova Bloom', service: 'spotify' },
+  { id: '2', name: 'Mia', track: 'Golden Hour', artist: 'Mira Vox', service: 'apple' },
+  { id: '3', name: 'Noah', track: 'Night City Lights', artist: 'Solace', service: 'spotify' },
 ];
 
 const OTHERS: Friend[] = [
-  { id: '4', name: 'Lena', track: 'Lo‑Fi Focus', service: 'spotify' },
-  { id: '5', name: 'Kai', track: 'Midnight Rain', service: 'apple' },
+  { id: '4', name: 'Lena', track: 'Lo‑Fi Focus', artist: 'Sable Day', service: 'spotify' },
+  { id: '5', name: 'Kai', track: 'Midnight Rain', artist: 'Cinder & Co.', service: 'apple' },
 ];
+
+const BLANK_PFP = require('@/assets/images/blank-pfp.jpg');
 
 export default function SocialScreen() {
   const colorScheme = useColorScheme();
@@ -124,9 +127,10 @@ export default function SocialScreen() {
                   backgroundColor: pressed ? '#fef3c7' : 'rgba(255,255,255,0.96)',
                 },
               ]}>
+              <Image source={BLANK_PFP} style={styles.avatar} />
               <View style={styles.cardText}>
                 <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
-                <Text style={styles.cardTrack}>Listening to {item.track}</Text>
+                <Text style={styles.cardTrack}>{`${item.track} - ${item.artist}`}</Text>
               </View>
               <StreamingBadge service={item.service} />
             </Pressable>
@@ -137,13 +141,14 @@ export default function SocialScreen() {
       <BottomDrawer isOpen={!!selected} onClose={() => setSelected(null)} initialHeight={420}>
         <Text style={styles.modalTitle}>{selected?.name}</Text>
         <Text style={styles.modalSubtitle}>
-          {selected ? `Listening to ${selected.track}` : ''}
+          {selected ? `${selected.track} - ${selected.artist}` : ''}
         </Text>
 
         <View style={styles.modalActions}>
           <OptionRow icon="headphones" label="Listen along" />
           <OptionRow icon="play-circle" label="Play song" />
           <OptionRow icon="share-alt" label="Request crossplay" />
+          <OptionRow icon="user" label="View profile" />
         </View>
 
         <Pressable style={styles.modalCancel} onPress={() => setSelected(null)}>
@@ -308,6 +313,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
     elevation: 1,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    marginRight: 12,
   },
   cardText: {
     flex: 1,

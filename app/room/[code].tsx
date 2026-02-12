@@ -18,6 +18,7 @@ import { ensureSpotifyAccessToken, searchSpotifyTracks } from '@/src/lib/provide
 import { supabase } from '@/src/lib/supabase';
 import type { Room, UniversalTrack } from '@/src/lib/types';
 import { getOrCreateUser, getStoredUsername } from '@/src/lib/user';
+import { appleMusicRemote } from '@/src/lib/apple-music-remote';
 
 type Provider = 'spotify' | 'apple';
 
@@ -172,11 +173,26 @@ export default function RoomScreen() {
     if (!room) return;
     const duration = room.current_track?.durationMs ?? Number.MAX_SAFE_INTEGER;
     const next = Math.min(Math.max(0, displayedPosition + deltaMs), duration);
+    if (room.current_track?.providers?.apple?.id && appleMusicRemote.isAvailable) {
+      await appleMusicRemote.seekTo(next);
+    }
     await updatePlayback({ position_ms: next });
   };
 
   const handleTogglePlay = async () => {
     if (!room) return;
+    if (room.current_track?.providers?.apple?.id && appleMusicRemote.isAvailable) {
+      if (room.is_playing) {
+        await appleMusicRemote.pause();
+      } else {
+        const auth = await appleMusicRemote.requestAuthorization();
+        if (auth !== 3) {
+          Alert.alert('Apple Music', 'Apple Music access is required to control playback.');
+        } else {
+          await appleMusicRemote.play();
+        }
+      }
+    }
     await updatePlayback({ is_playing: !room.is_playing, position_ms: displayedPosition });
   };
 
@@ -221,6 +237,15 @@ export default function RoomScreen() {
         payload: track,
         actor_user_id: userId,
       });
+    }
+
+    if (track.providers?.apple?.id && appleMusicRemote.isAvailable) {
+      const auth = await appleMusicRemote.requestAuthorization();
+      if (auth !== 3) {
+        Alert.alert('Apple Music', 'Apple Music access is required to start playback.');
+        return;
+      }
+      await appleMusicRemote.setQueue([track.providers.apple.id], true);
     }
   };
 
