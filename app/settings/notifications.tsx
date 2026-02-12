@@ -1,80 +1,34 @@
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as React from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Card } from '@/components/ui/card';
 
-export default function NotificationSettingsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const insets = useSafeAreaInsets();
-
+export default function NotificationsSettingsScreen() {
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: 24 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="chevron-left" size={18} color={theme.text} />
-          </Pressable>
-          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.rounded }]}>Notifications</Text>
-          <Text style={[styles.subtitle, { color: theme.icon }]}>Choose what you want to hear about.</Text>
+    <View className="flex-1 bg-[#f9f1e8] pt-safe pb-safe px-5">
+      <View className="gap-4 pt-4">
+        <Pressable
+          onPress={() => router.back()}
+          className="h-10 w-10 items-center justify-center rounded-full border border-[#efe1d4] bg-[#fff7ef]">
+          <FontAwesome name="chevron-left" size={16} color="#3b2f28" />
+        </Pressable>
+        <View className="gap-2">
+          <Text className="text-3xl font-semibold text-[#3b2f28]">Notifications</Text>
+          <Text className="text-[14px] text-[#9b7c6b]">
+            Choose which alerts you want to receive.
+          </Text>
         </View>
+      </View>
 
-        <View style={styles.card}>
-          <Text style={styles.placeholder}>Notification settings placeholder</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <View className="flex-1 items-center justify-center">
+        <Card className="w-full max-w-[420px] px-6 py-8">
+          <Text className="text-center text-[14px] text-[#9b7c6b]">
+            Notification settings content goes here.
+          </Text>
+        </Card>
+      </View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-    gap: 16,
-  },
-  header: {
-    gap: 4,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
-    elevation: 2,
-  },
-  placeholder: {
-    color: '#6b7280',
-  },
-});

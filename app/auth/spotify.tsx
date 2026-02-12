@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import * as React from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import { env } from '@/src/lib/env';
 
@@ -10,10 +10,10 @@ const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
 
 export default function SpotifyCallbackScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
-  const [status, setStatus] = useState('Finishing Spotify connection...');
+  const [status, setStatus] = React.useState('Finishing Spotify connection...');
 
-  useEffect(() => {
-    const run = async () => {
+  React.useEffect(() => {
+    const finalize = async () => {
       if (!code || Array.isArray(code)) {
         setStatus('Missing authorization code.');
         return;
@@ -49,28 +49,13 @@ export default function SpotifyCallbackScreen() {
       router.replace('/');
     };
 
-    run().catch(() => {
-      setStatus('Spotify exchange failed.');
-    });
+    finalize().catch(() => setStatus('Spotify exchange failed.'));
   }, [code]);
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 items-center justify-center bg-[#f9f1e8] px-6">
       <ActivityIndicator />
-      <Text style={styles.text}>{status}</Text>
+      <Text className="mt-3 text-center text-[14px] text-[#7a5b4c]">{status}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 24,
-  },
-  text: {
-    textAlign: 'center',
-  },
-});

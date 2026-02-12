@@ -1,13 +1,13 @@
+import * as React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { env } from '@/src/lib/env';
 import { generateCodeChallenge, generateCodeVerifier } from '@/src/lib/pkce';
 import { supabase } from '@/src/lib/supabase';
@@ -16,28 +16,21 @@ import { getStoredUsername } from '@/src/lib/user';
 const SPOTIFY_VERIFIER_KEY = 'crossplay.spotify.code_verifier';
 const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
 
+type Service = 'spotify' | 'apple';
+
 export default function PlaybackSettingsScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const insets = useSafeAreaInsets();
+  const [username, setUsername] = React.useState('');
+  const [spotifyConnected, setSpotifyConnected] = React.useState(false);
+  const [appleConnected, setAppleConnected] = React.useState(false);
+  const [preferred, setPreferred] = React.useState<Service | null>(null);
 
-  const [username, setUsername] = useState('');
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [appleConnected, setAppleConnected] = useState(false);
-  const [preferred, setPreferred] = useState<'spotify' | 'apple' | null>(null);
-
-  const canSelectSpotify = spotifyConnected;
-  const canSelectApple = appleConnected;
-
-  useEffect(() => {
+  React.useEffect(() => {
     getStoredUsername()
-      .then((stored) => {
-        if (stored) setUsername(stored);
-      })
+      .then((stored) => stored && setUsername(stored))
       .catch(() => undefined);
   }, []);
 
-  const refreshConnections = useCallback(async () => {
+  const refreshConnections = React.useCallback(async () => {
     const trimmed = username.trim();
     if (!trimmed) {
       setSpotifyConnected(false);
@@ -64,11 +57,11 @@ export default function PlaybackSettingsScreen() {
     setAppleConnected(Boolean(appleResult.data));
   }, [username]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     refreshConnections().catch(() => undefined);
   }, [refreshConnections]);
 
-  const handleConnectSpotify = async () => {
+  const connectSpotify = async () => {
     const trimmed = username.trim();
     if (!trimmed) {
       Alert.alert('Username required', 'Set a username in your profile first.');
@@ -76,10 +69,10 @@ export default function PlaybackSettingsScreen() {
     }
 
     try {
-      const codeVerifier = await generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const verifier = await generateCodeVerifier();
+      const challenge = await generateCodeChallenge(verifier);
 
-      await AsyncStorage.setItem(SPOTIFY_VERIFIER_KEY, codeVerifier);
+      await AsyncStorage.setItem(SPOTIFY_VERIFIER_KEY, verifier);
       await AsyncStorage.setItem(SPOTIFY_USERNAME_KEY, trimmed);
 
       const scopes = ['user-read-playback-state', 'user-modify-playback-state'].join(' ');
@@ -89,7 +82,7 @@ export default function PlaybackSettingsScreen() {
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('redirect_uri', env.spotifyRedirectUri());
       authUrl.searchParams.set('code_challenge_method', 'S256');
-      authUrl.searchParams.set('code_challenge', codeChallenge);
+      authUrl.searchParams.set('code_challenge', challenge);
       authUrl.searchParams.set('scope', scopes);
       authUrl.searchParams.set('state', String(Date.now()));
 
@@ -99,7 +92,7 @@ export default function PlaybackSettingsScreen() {
     }
   };
 
-  const handleConnectApple = () => {
+  const connectApple = () => {
     const trimmed = username.trim();
     if (!trimmed) {
       Alert.alert('Username required', 'Set a username in your profile first.');
@@ -107,174 +100,128 @@ export default function PlaybackSettingsScreen() {
     }
 
     if (Platform.OS === 'android') {
-      Alert.alert('Not supported', 'Apple Music auth is not supported on Android in v1.');
+      Alert.alert('Not supported', 'Apple Music auth is not supported on Android yet.');
       return;
     }
 
     router.push('/auth/apple');
   };
 
-  const statusText = useMemo(() => {
-    if (!username.trim()) return 'Set a username in your profile to enable connections.';
-    return 'Connections are tied to your username.';
-  }, [username]);
+  const canPickSpotify = spotifyConnected;
+  const canPickApple = appleConnected;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: 24 + insets.bottom }]}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="chevron-left" size={18} color={theme.text} />
+    <View className="flex-1 bg-[#f9f1e8] pt-safe">
+      <ScrollView contentContainerClassName="px-5 pb-safe-offset-8 pt-4 gap-5">
+        <View className="gap-3">
+          <Pressable
+            onPress={() => router.back()}
+            className="h-10 w-10 items-center justify-center rounded-full border border-[#efe1d4] bg-[#fff7ef]">
+            <FontAwesome name="chevron-left" size={16} color="#3b2f28" />
           </Pressable>
-          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.rounded }]}>Playback</Text>
-          <Text style={[styles.subtitle, { color: theme.icon }]}>Connect a service and pick your default.</Text>
+          <View className="gap-2">
+            <Text className="text-3xl font-semibold text-[#3b2f28]">Playback</Text>
+            <Text className="text-[14px] text-[#9b7c6b]">
+              Connect a service and set your default player.
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Connections</Text>
-          <Text style={styles.caption}>{statusText}</Text>
+        <Card className="px-4 py-4">
+          <Text className="text-[16px] font-semibold text-[#3b2f28]">Connections</Text>
+          <Text className="text-[12px] text-[#9b7c6b]">
+            {username.trim()
+              ? 'Connections stay tied to your username.'
+              : 'Add a username in profile to enable connections.'}
+          </Text>
 
-          <View style={styles.connectionRow}>
-            <Text style={styles.connectionLabel}>Spotify</Text>
-            <Text style={styles.connectionStatus}>{spotifyConnected ? 'Connected' : 'Not connected'}</Text>
-            <Pressable style={styles.secondaryButton} onPress={handleConnectSpotify}>
-              <Text style={styles.secondaryButtonText}>Connect</Text>
-            </Pressable>
+          <View className="mt-4 gap-4">
+            <ServiceRow
+              label="Spotify"
+              connected={spotifyConnected}
+              onConnect={connectSpotify}
+              buttonLabel={spotifyConnected ? 'Reconnect' : 'Connect'}
+            />
+            <RadioRow
+              label="Use Spotify for playback"
+              active={preferred === 'spotify'}
+              disabled={!canPickSpotify}
+              onPress={() => canPickSpotify && setPreferred('spotify')}
+            />
+
+            <Separator className="my-2" />
+
+            <ServiceRow
+              label="Apple Music"
+              connected={appleConnected}
+              onConnect={connectApple}
+              buttonLabel={appleConnected ? 'Manage' : 'Connect'}
+            />
+            <RadioRow
+              label="Use Apple Music for playback"
+              active={preferred === 'apple'}
+              disabled={!canPickApple}
+              onPress={() => canPickApple && setPreferred('apple')}
+            />
           </View>
-
-          <Pressable
-            style={[styles.selector, !canSelectSpotify && styles.selectorDisabled]}
-            onPress={() => canSelectSpotify && setPreferred('spotify')}>
-            <View style={[styles.radio, preferred === 'spotify' && styles.radioActive]} />
-            <Text style={styles.selectorText}>Use Spotify for playback</Text>
-          </Pressable>
-
-          <View style={styles.connectionRow}>
-            <Text style={styles.connectionLabel}>Apple Music</Text>
-            <Text style={styles.connectionStatus}>{appleConnected ? 'Connected' : 'Not connected'}</Text>
-            <Pressable style={styles.secondaryButton} onPress={handleConnectApple}>
-              <Text style={styles.secondaryButtonText}>Connect</Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            style={[styles.selector, !canSelectApple && styles.selectorDisabled]}
-            onPress={() => canSelectApple && setPreferred('apple')}>
-            <View style={[styles.radio, preferred === 'apple' && styles.radioActive]} />
-            <Text style={styles.selectorText}>Use Apple Music for playback</Text>
-          </Pressable>
-        </View>
+        </Card>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-    gap: 16,
-  },
-  header: {
-    gap: 4,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 20,
-    padding: 16,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  primaryButton: {
-    paddingVertical: 10,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#fff7ed',
-    fontWeight: '600',
-  },
-  caption: {
-    color: '#5b6472',
-  },
-  connectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  connectionLabel: {
-    flex: 1,
-    fontWeight: '600',
-  },
-  connectionStatus: {
-    color: '#5b6472',
-  },
-  secondaryButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(148, 163, 184, 0.18)',
-  },
-  secondaryButtonText: {
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  selector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  selectorDisabled: {
-    opacity: 0.45,
-  },
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: '#cbd5f5',
-  },
-  radioActive: {
-    borderColor: '#f9735b',
-    backgroundColor: 'rgba(249, 115, 91, 0.2)',
-  },
-  selectorText: {
-    fontSize: 14,
-    color: '#1f2937',
-  },
-});
+function ServiceRow({
+  label,
+  connected,
+  onConnect,
+  buttonLabel,
+}: {
+  label: string;
+  connected: boolean;
+  onConnect: () => void;
+  buttonLabel: string;
+}) {
+  return (
+    <View className="flex-row items-center gap-3">
+      <View className="flex-1">
+        <Text className="text-[15px] font-semibold text-[#3b2f28]">{label}</Text>
+        <Text className="text-[12px] text-[#9b7c6b]">
+          {connected ? 'Connected' : 'Not connected'}
+        </Text>
+      </View>
+      <Button size="sm" variant="secondary" onPress={onConnect}>
+        {buttonLabel}
+      </Button>
+    </View>
+  );
+}
+
+function RadioRow({
+  label,
+  active,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row items-center gap-3 rounded-full px-3 py-2 ${
+        disabled ? 'bg-[#f3e7dc]' : 'bg-[#fffaf4]'
+      }`}>
+      <View
+        className={`h-4 w-4 rounded-full border ${
+          active ? 'border-[#f27663] bg-[#f27663]' : 'border-[#d8c6b9] bg-transparent'
+        }`}
+      />
+      <Text
+        className={`text-[13px] ${disabled ? 'text-[#c4b0a2]' : 'text-[#7a5b4c]'}`}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}

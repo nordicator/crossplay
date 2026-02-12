@@ -1,388 +1,167 @@
-import { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as React from 'react';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BottomDrawer } from '@/components/bottom-drawer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
-type Friend = {
-  id: string;
-  name: string;
-  track: string;
-  artist: string;
-  service: 'spotify' | 'apple';
-};
-
-const FRIENDS: Friend[] = [
-  { id: '1', name: 'Ayaan', track: 'Sunset Drive', artist: 'Nova Bloom', service: 'spotify' },
-  { id: '2', name: 'Mia', track: 'Golden Hour', artist: 'Mira Vox', service: 'apple' },
-  { id: '3', name: 'Noah', track: 'Night City Lights', artist: 'Solace', service: 'spotify' },
+const FRIENDS = [
+  { id: 'f1', name: 'Ayaan', track: 'Sunlit Park', artist: 'Nova Bloom', service: 'spotify' as const },
+  { id: 'f2', name: 'Mia', track: 'Quiet Tide', artist: 'Mira Vox', service: 'apple' as const },
+  { id: 'f3', name: 'Noah', track: 'Night Window', artist: 'Solace', service: 'spotify' as const },
+  { id: 'f4', name: 'Lena', track: 'Soft Echo', artist: 'Sable Day', service: 'apple' as const },
 ];
 
-const OTHERS: Friend[] = [
-  { id: '4', name: 'Lena', track: 'Lo‑Fi Focus', artist: 'Sable Day', service: 'spotify' },
-  { id: '5', name: 'Kai', track: 'Midnight Rain', artist: 'Cinder & Co.', service: 'apple' },
+const OTHERS = [
+  { id: 'o1', name: 'Kai', track: 'Morning Glow', artist: 'Cinder & Co.', service: 'spotify' as const },
+  { id: 'o2', name: 'Zara', track: 'Velvet Drift', artist: 'Lowtide', service: 'apple' as const },
 ];
 
-const BLANK_PFP = require('@/assets/images/blank-pfp.jpg');
+type Friend = (typeof FRIENDS)[number];
+
+const PROFILE_PLACEHOLDER = require('@/assets/images/blank-pfp.jpg');
 
 export default function SocialScreen() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const insets = useSafeAreaInsets();
+  const [query, setQuery] = React.useState('');
+  const [activeList, setActiveList] = React.useState<'friends' | 'others'>('friends');
+  const [focused, setFocused] = React.useState(false);
+  const [selected, setSelected] = React.useState<Friend | null>(null);
 
-  const [mode, setMode] = useState<'friends' | 'others'>('friends');
-  const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Friend | null>(null);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-  const baseList = useMemo(() => {
-    if (isSearchFocused) {
-      return mode === 'friends' ? FRIENDS : OTHERS;
-    }
-    return FRIENDS;
-  }, [isSearchFocused, mode]);
-
-  const visibleList =
-    query.trim().length === 0
-      ? baseList
-      : baseList.filter((item) =>
-          item.name.toLowerCase().includes(query.trim().toLowerCase())
-        );
-
-  const showList = visibleList.length > 0 && (!isSearchFocused || query.trim().length > 0);
+  const baseList = focused ? (activeList === 'friends' ? FRIENDS : OTHERS) : FRIENDS;
+  const normalized = query.trim().toLowerCase();
+  const visible = normalized.length
+    ? baseList.filter((friend) => friend.name.toLowerCase().includes(normalized))
+    : baseList;
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.background }]}
-      edges={['top', 'left', 'right']}>
-      <View style={styles.root}>
-      {!isSearchFocused && (
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.rounded }]}>
-            Social
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.icon }]}>
-            See what your friends are listening to right now.
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.searchSection}>
-        <View style={[styles.searchBar, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
-          <FontAwesome name="search" size={16} color={theme.icon} />
-          <TextInput
-            placeholder="Search people"
-            placeholderTextColor="rgba(148, 163, 184, 0.9)"
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-          />
-        </View>
-
-        {isSearchFocused && (
-          <View style={[styles.segmentWrapper, { backgroundColor: 'rgba(148, 163, 184, 0.16)' }]}>
-            <SegmentChip
-              label="Friends"
-              active={mode === 'friends'}
-              onPress={() => setMode('friends')}
-              tint={theme.tint}
-            />
-            <SegmentChip
-              label="Others"
-              active={mode === 'others'}
-              onPress={() => setMode('others')}
-              tint={theme.tint}
-            />
+    <View className="flex-1 bg-[#f9f1e8] pt-safe">
+      <View className="px-5 pt-4">
+        {!focused && (
+          <View className="gap-2 pb-4">
+            <Text className="text-3xl font-semibold text-[#3b2f28]">Social</Text>
+            <Text className="text-[14px] text-[#9b7c6b]">
+              See what your friends are listening to right now.
+            </Text>
           </View>
         )}
 
-        {!isSearchFocused && (
-          <Pressable
-            style={[styles.primaryButton, { backgroundColor: theme.tint }]}
-            onPress={() => {
-              // purely visual for now
-            }}>
-            <Text style={styles.primaryButtonText}>Create crossplay session</Text>
-          </Pressable>
-        )}
+        <View className="gap-3">
+          <View className="flex-row items-center gap-3 rounded-full border border-[#eaded2] bg-[#fffaf4] px-4 py-2">
+            <FontAwesome name="search" size={16} color="#9b7c6b" />
+            <Input
+              placeholder="Search people"
+              value={query}
+              onChangeText={setQuery}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              className="h-8 border-0 bg-transparent px-0"
+            />
+          </View>
+
+          {focused ? (
+            <View className="flex-row rounded-full bg-[#efe1d4] p-1">
+              <Pressable
+                onPress={() => setActiveList('friends')}
+                className={`flex-1 items-center rounded-full py-2 ${
+                  activeList === 'friends' ? 'bg-[#fffaf4]' : 'bg-transparent'
+                }`}>
+                <Text
+                  className={`text-[12px] font-semibold ${
+                    activeList === 'friends' ? 'text-[#f27663]' : 'text-[#9b7c6b]'
+                  }`}>
+                  Friends
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setActiveList('others')}
+                className={`flex-1 items-center rounded-full py-2 ${
+                  activeList === 'others' ? 'bg-[#fffaf4]' : 'bg-transparent'
+                }`}>
+                <Text
+                  className={`text-[12px] font-semibold ${
+                    activeList === 'others' ? 'text-[#f27663]' : 'text-[#9b7c6b]'
+                  }`}>
+                  Others
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Button className="rounded-2xl" onPress={() => undefined}>
+              Create crossplay session
+            </Button>
+          )}
+        </View>
       </View>
 
-      {showList && (
-        <ScrollView
-          style={styles.list}
-          contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
-          showsVerticalScrollIndicator={false}>
-          {visibleList.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => setSelected(item)}
-              style={({ pressed }) => [
-                styles.card,
-                {
-                  backgroundColor: pressed ? '#fef3c7' : 'rgba(255,255,255,0.96)',
-                },
-              ]}>
-              <Image source={BLANK_PFP} style={styles.avatar} />
-              <View style={styles.cardText}>
-                <Text style={[styles.cardName, { color: theme.text }]}>{item.name}</Text>
-                <Text style={styles.cardTrack}>{`${item.track} - ${item.artist}`}</Text>
-              </View>
-              <StreamingBadge service={item.service} />
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-5 pb-safe-offset-6 pt-4 gap-3"
+        showsVerticalScrollIndicator={false}>
+        {visible.map((friend) => (
+          <Pressable
+            key={friend.id}
+            onPress={() => setSelected(friend)}
+            className="flex-row items-center gap-4 rounded-3xl border border-[#efe1d4] bg-[#fff7ef] px-4 py-3 shadow-sm">
+            <Image source={PROFILE_PLACEHOLDER} className="h-11 w-11 rounded-full" />
+            <View className="flex-1">
+              <Text className="text-[16px] font-semibold text-[#3b2f28]">{friend.name}</Text>
+              <Text className="text-[12px] text-[#a08474]">
+                {friend.track} · {friend.artist}
+              </Text>
+            </View>
+            <View
+              className={`h-9 w-9 items-center justify-center rounded-full ${
+                friend.service === 'spotify' ? 'bg-[#22c55e]' : 'bg-[#f472b6]'
+              }`}>
+              <FontAwesome
+                name={friend.service === 'spotify' ? 'spotify' : 'apple'}
+                size={16}
+                color="#fff6ee"
+              />
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
 
-      <BottomDrawer isOpen={!!selected} onClose={() => setSelected(null)} initialHeight={420}>
-        <Text style={styles.modalTitle}>{selected?.name}</Text>
-        <Text style={styles.modalSubtitle}>
-          {selected ? `${selected.track} - ${selected.artist}` : ''}
-        </Text>
-
-        <View style={styles.modalActions}>
-          <OptionRow icon="headphones" label="Listen along" />
-          <OptionRow icon="play-circle" label="Play song" />
-          <OptionRow icon="share-alt" label="Request crossplay" />
-          <OptionRow icon="user" label="View profile" />
+      <BottomDrawer isOpen={!!selected} onClose={() => setSelected(null)} height={420}>
+        <View className="gap-1 pb-4">
+          <Text className="text-center text-[18px] font-semibold text-[#3b2f28]">
+            {selected?.name}
+          </Text>
+          <Text className="text-center text-[13px] text-[#a08474]">
+            {selected ? `${selected.track} · ${selected.artist}` : ''}
+          </Text>
         </View>
 
-        <Pressable style={styles.modalCancel} onPress={() => setSelected(null)}>
-          <Text style={styles.modalCancelText}>Close</Text>
-        </Pressable>
+        <View className="rounded-3xl bg-[#fffaf4] px-3 py-2">
+          <ActionRow icon="headphones" label="Listen along" />
+          <Separator className="my-1" />
+          <ActionRow icon="play-circle" label="Play song" />
+          <Separator className="my-1" />
+          <ActionRow icon="share-alt" label="Request crossplay" />
+          <Separator className="my-1" />
+          <ActionRow icon="user" label="View profile" />
+        </View>
+
+        <View className="items-center pt-4">
+          <Button variant="ghost" onPress={() => setSelected(null)}>
+            Close
+          </Button>
+        </View>
       </BottomDrawer>
     </View>
-    </SafeAreaView>
   );
 }
 
-type SegmentChipProps = {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  tint: string;
-};
-
-function SegmentChip({ label, active, onPress, tint }: SegmentChipProps) {
+function ActionRow({ icon, label }: { icon: React.ComponentProps<typeof FontAwesome>['name']; label: string }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.segmentChip,
-        {
-          backgroundColor: active ? '#ffffff' : 'transparent',
-          shadowOpacity: active ? 0.12 : 0,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-        },
-      ]}>
-      <Text
-        style={[
-          styles.segmentLabel,
-          {
-            color: active ? tint : '#64748b',
-          },
-        ]}>
-        {label}
-      </Text>
+    <Pressable className="flex-row items-center gap-3 py-3">
+      <View className="h-9 w-9 items-center justify-center rounded-full bg-[#efe1d4]">
+        <FontAwesome name={icon} size={16} color="#3b2f28" />
+      </View>
+      <Text className="text-[15px] font-medium text-[#3b2f28]">{label}</Text>
     </Pressable>
   );
 }
-
-function StreamingBadge({ service }: { service: Friend['service'] }) {
-  if (service === 'spotify') {
-    return (
-      <View style={[styles.badge, { backgroundColor: '#16a34a' }]}>
-        <FontAwesome name="spotify" size={16} color="#ecfeff" />
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.badge, { backgroundColor: '#fb7185' }]}>
-      <FontAwesome name="apple" size={16} color="#fff7ed" />
-    </View>
-  );
-}
-
-function OptionRow({ icon, label }: { icon: React.ComponentProps<typeof FontAwesome>['name']; label: string }) {
-  return (
-    <Pressable style={({ pressed }) => [styles.optionRow, pressed && { opacity: 0.7 }]}>
-      <View style={styles.optionIcon}>
-        <FontAwesome name={icon} size={18} color="#0f172a" />
-      </View>
-      <Text style={styles.optionLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  root: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    gap: 4,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  searchSection: {
-    gap: 12,
-    marginBottom: 12,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.28)',
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 2,
-    fontSize: 15,
-  },
-  segmentWrapper: {
-    flexDirection: 'row',
-    borderRadius: 999,
-    padding: 4,
-    gap: 4,
-  },
-  segmentChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-  },
-  segmentLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    marginTop: 4,
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  primaryButtonText: {
-    color: '#fefce8',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  list: {
-    flex: 1,
-    marginTop: 8,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 18,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 1,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    marginRight: 12,
-  },
-  cardText: {
-    flex: 1,
-    gap: 4,
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cardTrack: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  badge: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  modalActions: {
-    marginTop: 8,
-    borderRadius: 18,
-    backgroundColor: '#f9fafb',
-    paddingVertical: 6,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  optionIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 999,
-    backgroundColor: '#e5e7eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  modalCancel: {
-    marginTop: 6,
-    alignSelf: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-  },
-  modalCancelText: {
-    fontSize: 15,
-    color: '#4b5563',
-  },
-});

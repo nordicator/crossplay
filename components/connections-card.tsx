@@ -1,16 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import * as React from 'react';
+import { ActivityIndicator, Alert, Platform, Text, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { env } from '@/src/lib/env';
 import { generateCodeChallenge, generateCodeVerifier } from '@/src/lib/pkce';
 import { supabase } from '@/src/lib/supabase';
@@ -18,25 +12,25 @@ import { supabase } from '@/src/lib/supabase';
 const SPOTIFY_VERIFIER_KEY = 'crossplay.spotify.code_verifier';
 const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
 
-type Props = {
+type ConnectionsCardProps = {
   username: string;
 };
 
-export function ConnectionsCard({ username }: Props) {
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [appleConnected, setAppleConnected] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+export function ConnectionsCard({ username }: ConnectionsCardProps) {
+  const [spotifyConnected, setSpotifyConnected] = React.useState(false);
+  const [appleConnected, setAppleConnected] = React.useState(false);
+  const [checking, setChecking] = React.useState(false);
 
   const trimmed = username.trim();
 
-  const refreshConnections = useCallback(async () => {
+  const refresh = React.useCallback(async () => {
     if (!trimmed) {
       setSpotifyConnected(false);
       setAppleConnected(false);
       return;
     }
 
-    setIsChecking(true);
+    setChecking(true);
     try {
       const [spotifyResult, appleResult] = await Promise.all([
         supabase
@@ -56,27 +50,27 @@ export function ConnectionsCard({ username }: Props) {
       setSpotifyConnected(Boolean(spotifyResult.data));
       setAppleConnected(Boolean(appleResult.data));
     } catch {
-      // swallow errors – purely cosmetic here
+      // no-op for display only
     } finally {
-      setIsChecking(false);
+      setChecking(false);
     }
   }, [trimmed]);
 
-  useEffect(() => {
-    refreshConnections().catch(() => undefined);
-  }, [refreshConnections]);
+  React.useEffect(() => {
+    refresh().catch(() => undefined);
+  }, [refresh]);
 
-  const handleConnectSpotify = async () => {
+  const connectSpotify = async () => {
     if (!trimmed) {
-      Alert.alert('Username required', 'Please save a username first.');
+      Alert.alert('Username required', 'Save a username before connecting Spotify.');
       return;
     }
 
     try {
-      const codeVerifier = await generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const verifier = await generateCodeVerifier();
+      const challenge = await generateCodeChallenge(verifier);
 
-      await AsyncStorage.setItem(SPOTIFY_VERIFIER_KEY, codeVerifier);
+      await AsyncStorage.setItem(SPOTIFY_VERIFIER_KEY, verifier);
       await AsyncStorage.setItem(SPOTIFY_USERNAME_KEY, trimmed);
 
       const scopes = ['user-read-playback-state', 'user-modify-playback-state'].join(' ');
@@ -86,115 +80,66 @@ export function ConnectionsCard({ username }: Props) {
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('redirect_uri', env.spotifyRedirectUri());
       authUrl.searchParams.set('code_challenge_method', 'S256');
-      authUrl.searchParams.set('code_challenge', codeChallenge);
+      authUrl.searchParams.set('code_challenge', challenge);
       authUrl.searchParams.set('scope', scopes);
       authUrl.searchParams.set('state', String(Date.now()));
 
       await WebBrowser.openAuthSessionAsync(authUrl.toString(), env.spotifyRedirectUri());
     } catch {
-      Alert.alert('Spotify auth failed', 'Please try again.');
+      Alert.alert('Spotify connection failed', 'Please try again.');
     }
   };
 
-  const handleConnectApple = () => {
+  const connectApple = () => {
     if (!trimmed) {
-      Alert.alert('Username required', 'Please save a username first.');
+      Alert.alert('Username required', 'Save a username before connecting Apple Music.');
       return;
     }
 
     if (Platform.OS === 'android') {
-      Alert.alert('Not supported', 'Apple Music auth is not supported on Android in v1.');
+      Alert.alert('Not supported', 'Apple Music auth is not supported on Android yet.');
       return;
     }
 
-    // keep same deep-link behaviour as existing app
     WebBrowser.openBrowserAsync?.('/auth/apple');
   };
 
-  const statusText = useMemo(() => {
-    if (!trimmed) return 'Set a username to enable connections.';
-    return 'Connections are tied to your username.';
-  }, [trimmed]);
-
   return (
-    <View style={styles.section}>
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionTitle}>Streaming services</Text>
-        {isChecking && <ActivityIndicator size="small" />}
-      </View>
-      <Text style={styles.caption}>{statusText}</Text>
-      <View style={styles.connectionRow}>
-        <Text style={styles.connectionLabel}>Spotify</Text>
-        <Text style={[styles.connectionStatus, spotifyConnected && styles.connected]}>
-          {spotifyConnected ? 'Connected' : 'Not connected'}
-        </Text>
-        <Pressable style={styles.secondaryButton} onPress={handleConnectSpotify}>
-          <Text style={styles.secondaryButtonText}>
+    <Card className="bg-[#fff1e7]">
+      <CardHeader className="flex-row items-center justify-between">
+        <View>
+          <CardTitle>Streaming services</CardTitle>
+          <CardDescription>
+            {trimmed ? 'Connections follow your username.' : 'Add a username to connect services.'}
+          </CardDescription>
+        </View>
+        {checking ? <ActivityIndicator /> : null}
+      </CardHeader>
+      <CardContent className="gap-3">
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1">
+            <Text className="text-[15px] font-semibold text-[#3b2f28]">Spotify</Text>
+            <Text className="text-[12px] text-[#9a7f70]">
+              {spotifyConnected ? 'Connected' : 'Not connected'}
+            </Text>
+          </View>
+          <Button size="sm" variant="secondary" onPress={connectSpotify}>
             {spotifyConnected ? 'Reconnect' : 'Connect'}
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.connectionRow}>
-        <Text style={styles.connectionLabel}>Apple Music</Text>
-        <Text style={[styles.connectionStatus, appleConnected && styles.connected]}>
-          {appleConnected ? 'Connected' : 'Not connected'}
-        </Text>
-        <Pressable style={styles.secondaryButton} onPress={handleConnectApple}>
-          <Text style={styles.secondaryButtonText}>
+          </Button>
+        </View>
+
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1">
+            <Text className="text-[15px] font-semibold text-[#3b2f28]">Apple Music</Text>
+            <Text className="text-[12px] text-[#9a7f70]">
+              {appleConnected ? 'Connected' : 'Not connected'}
+            </Text>
+          </View>
+          <Button size="sm" variant="secondary" onPress={connectApple}>
             {appleConnected ? 'Manage' : 'Connect'}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
+          </Button>
+        </View>
+      </CardContent>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    gap: 12,
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: '#fef3c7',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  caption: {
-    color: '#6b7280',
-    fontSize: 13,
-  },
-  connectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  connectionLabel: {
-    flex: 1,
-    fontWeight: '600',
-  },
-  connectionStatus: {
-    color: '#6b7280',
-    fontSize: 13,
-  },
-  connected: {
-    color: '#059669',
-  },
-  secondaryButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#f9735b',
-  },
-  secondaryButtonText: {
-    color: '#fff7ed',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-});
-

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import * as React from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { fetchAppleDeveloperToken } from '@/src/lib/providers/apple';
@@ -8,18 +8,16 @@ import { supabase } from '@/src/lib/supabase';
 import { getStoredUsername } from '@/src/lib/user';
 
 export default function AppleAuthScreen() {
-  const [developerToken, setDeveloperToken] = useState<string | null>(null);
-  const [status, setStatus] = useState('Loading Apple Music...');
+  const [developerToken, setDeveloperToken] = React.useState<string | null>(null);
+  const [status, setStatus] = React.useState('Loading Apple Music...');
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchAppleDeveloperToken()
       .then(setDeveloperToken)
-      .catch(() => {
-        setStatus('Failed to fetch Apple developer token.');
-      });
+      .catch(() => setStatus('Failed to fetch Apple developer token.'));
   }, []);
 
-  const html = useMemo(() => {
+  const html = React.useMemo(() => {
     if (!developerToken) return null;
 
     return `<!DOCTYPE html>
@@ -43,9 +41,7 @@ export default function AppleAuthScreen() {
         }
       });
     </script>
-    <div style="font-family: -apple-system, sans-serif; padding: 16px;">
-      Authorizing Apple Music...
-    </div>
+    <div style="font-family: -apple-system, sans-serif; padding: 16px;">Authorizing Apple Music...</div>
   </body>
 </html>`;
   }, [developerToken]);
@@ -79,30 +75,16 @@ export default function AppleAuthScreen() {
 
   if (!html) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 items-center justify-center bg-[#f9f1e8] px-6">
         <ActivityIndicator />
-        <Text style={styles.text}>{status}</Text>
+        <Text className="mt-3 text-center text-[14px] text-[#7a5b4c]">{status}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <WebView
-        originWhitelist={['*']}
-        javaScriptEnabled
-        source={{ html }}
-        onMessage={handleMessage}
-      />
+    <View className="flex-1 bg-[#f9f1e8]">
+      <WebView originWhitelist={['*']} javaScriptEnabled source={{ html }} onMessage={handleMessage} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  text: {
-    textAlign: 'center',
-  },
-});
