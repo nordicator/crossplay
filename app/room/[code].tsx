@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchAppleDeveloperToken, searchAppleTracks } from '@/src/lib/providers/apple';
 import { ensureSpotifyAccessToken, searchSpotifyTracks } from '@/src/lib/providers/spotify';
@@ -21,6 +22,7 @@ import { getOrCreateUser, getStoredUsername } from '@/src/lib/user';
 type Provider = 'spotify' | 'apple';
 
 export default function RoomScreen() {
+  const insets = useSafeAreaInsets();
   const { code } = useLocalSearchParams<{ code?: string }>();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,27 +226,37 @@ export default function RoomScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-        <Text>Loading room...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.center}>
+          <ActivityIndicator />
+          <Text>Loading room...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !room) {
     return (
-      <View style={styles.center}>
-        <Text>{error ?? 'Room not found.'}</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <View style={styles.center}>
+          <Text>{error ?? 'Room not found.'}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Room {room.room_code}</Text>
-      <Pressable style={styles.secondaryButton} onPress={handleCopy}>
-        <Text style={styles.secondaryButtonText}>Copy Code</Text>
-      </Pressable>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 24 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Room {room.room_code}</Text>
+        <Pressable style={styles.secondaryButton} onPress={handleCopy}>
+          <Text style={styles.secondaryButtonText}>Copy Code</Text>
+        </Pressable>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Now Playing</Text>
@@ -267,7 +279,7 @@ export default function RoomScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
+        <View style={styles.section}>
         <Text style={styles.sectionTitle}>Set Track</Text>
         <View style={styles.row}>
           <Pressable
@@ -304,12 +316,17 @@ export default function RoomScreen() {
             <Text style={styles.resultArtist}>{track.artist}</Text>
           </Pressable>
         ))}
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
   container: {
     padding: 24,
     gap: 16,

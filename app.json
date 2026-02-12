@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nordicator.crossplay",
+      "appleTeamId": "464MGJA3HD"
     },
     "android": {
       "adaptiveIcon": {

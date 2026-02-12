@@ -15,7 +15,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Colors, Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { env } from '@/src/lib/env';
 import { generateCodeChallenge, generateCodeVerifier } from '@/src/lib/pkce';
 import { supabase } from '@/src/lib/supabase';
@@ -23,8 +26,21 @@ import { getOrCreateUser, getStoredUsername, setStoredUsername } from '@/src/lib
 
 const SPOTIFY_VERIFIER_KEY = 'crossplay.spotify.code_verifier';
 const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
+const MOCK_TOP_TRACKS = [
+  { id: 't1', title: 'Crimson Skies', artist: 'Nova Bloom', plays: '28 plays' },
+  { id: 't2', title: 'Late Train Home', artist: 'Solace', plays: '22 plays' },
+  { id: 't3', title: 'Gilded Coast', artist: 'Mira Vox', plays: '18 plays' },
+];
+const MOCK_STATS = [
+  { id: 's1', label: 'Minutes listened', value: '1,420' },
+  { id: 's2', label: 'Top genre', value: 'Indie pop' },
+  { id: 's3', label: 'Rooms hosted', value: '6' },
+];
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -208,10 +224,44 @@ export default function HomeScreen() {
   }, [username]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Crossplay</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['top', 'left', 'right']}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 24 + insets.bottom },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.text, fontFamily: Fonts.rounded }]}>Crossplay</Text>
+          <Text style={[styles.subtitle, { color: theme.icon }]}>
+            Your listening snapshot, ready to sync.
+          </Text>
+        </View>
 
-      <View style={styles.section}>
+        <View style={styles.statsRow}>
+          {MOCK_STATS.map((stat) => (
+            <View key={stat.id} style={styles.statCard}>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Most listened</Text>
+          {MOCK_TOP_TRACKS.map((track) => (
+            <View key={track.id} style={styles.trackRow}>
+              <View style={styles.trackText}>
+                <Text style={styles.trackTitle}>{track.title}</Text>
+                <Text style={styles.trackArtist}>{track.artist}</Text>
+              </View>
+              <Text style={styles.trackPlays}>{track.plays}</Text>
+            </View>
+          ))}
+        </View>
+
+      <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Username</Text>
         <TextInput
           style={styles.input}
@@ -221,17 +271,17 @@ export default function HomeScreen() {
           onChangeText={setUsername}
         />
         <Pressable
-          style={[styles.button, isSaving && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.tint }, isSaving && styles.buttonDisabled]}
           onPress={handleSaveUsername}
           disabled={isSaving}>
           {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Save</Text>}
         </Pressable>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Rooms</Text>
         <Pressable
-          style={[styles.button, !canCreate && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.tint }, !canCreate && styles.buttonDisabled]}
           onPress={handleCreateRoom}
           disabled={!canCreate}>
           {isWorking ? (
@@ -254,14 +304,14 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         <Pressable
-          style={[styles.button, !canJoin && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.tint }, !canJoin && styles.buttonDisabled]}
           onPress={handleJoinRoom}
           disabled={!canJoin}>
           <Text style={styles.buttonText}>Join Room</Text>
         </Pressable>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Connections</Text>
         <Text style={styles.caption}>{statusText}</Text>
         <View style={styles.connectionRow}>
@@ -283,48 +333,118 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
-    padding: 24,
-    gap: 24,
+    padding: 20,
+    gap: 18,
+  },
+  header: {
+    gap: 4,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
-  section: {
+  subtitle: {
+    fontSize: 14,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 16,
+    padding: 12,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 1,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  sectionCard: {
     gap: 12,
     padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#f6f7fb',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
+  trackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  trackText: {
+    flex: 1,
+    gap: 2,
+  },
+  trackTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  trackArtist: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  trackPlays: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#d2d6e0',
+    borderColor: 'rgba(148, 163, 184, 0.4)',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   button: {
-    backgroundColor: '#222222',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 2,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
+    color: '#fff7ed',
     fontWeight: '600',
   },
   row: {
@@ -339,10 +459,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#e0e4ef',
+    backgroundColor: 'rgba(148, 163, 184, 0.18)',
   },
   secondaryButtonText: {
     fontWeight: '600',
+    color: '#1f2937',
   },
   caption: {
     color: '#5b6472',
