@@ -1,5 +1,7 @@
 import { env } from '@/src/lib/env';
+import { getProviderId } from '@/src/lib/streaming';
 import { supabase } from '@/src/lib/supabase';
+import { getStoredUsername } from '@/src/lib/user';
 import type { ConnectedAccount, UniversalTrack } from '@/src/lib/types';
 
 const isExpired = (expiresAt: string | number | null | undefined): boolean => {
@@ -9,12 +11,13 @@ const isExpired = (expiresAt: string | number | null | undefined): boolean => {
   return Date.now() >= ms - 60_000;
 };
 
-export async function getSpotifyAccount(username: string): Promise<ConnectedAccount | null> {
+export async function getSpotifyAccount(userId: string): Promise<ConnectedAccount | null> {
+  const providerId = await getProviderId('spotify');
   const { data, error } = await supabase
-    .from('connected_accounts')
+    .from('user_streaming_connections')
     .select('*')
-    .eq('provider', 'spotify')
-    .eq('username', username)
+    .eq('user_id', userId)
+    .eq('provider_id', providerId)
     .maybeSingle();
 
   if (error) {
@@ -24,23 +27,25 @@ export async function getSpotifyAccount(username: string): Promise<ConnectedAcco
   return (data as ConnectedAccount | null) ?? null;
 }
 
-export async function ensureSpotifyAccessToken(username: string): Promise<string> {
-  const account = await getSpotifyAccount(username);
-  if (account?.access_token && !isExpired(account.expires_at)) {
+export async function ensureSpotifyAccessToken(userId: string): Promise<string> {
+  const account = await getSpotifyAccount(userId);
+  if (account?.access_token && !isExpired(account.token_expires_at)) {
     return account.access_token;
   }
+
+  const username = await getStoredUsername();
 
   const response = await fetch(`${env.supabaseFunctionsBase()}/spotify-refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ user_id: userId, username }),
   });
 
   if (!response.ok) {
     throw new Error(`Spotify refresh failed: ${response.status}`);
   }
 
-  const refreshed = await getSpotifyAccount(username);
+  const refreshed = await getSpotifyAccount(userId);
   if (!refreshed?.access_token) {
     throw new Error('Spotify refresh did not return an access token');
   }

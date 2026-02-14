@@ -21,10 +21,11 @@ export type Room = {
 
 export type ConnectedAccount = {
   id: string;
-  username: string;
-  provider: 'spotify' | 'apple';
+  user_id: string;
+  provider_id: string;
+  status: 'connected' | 'disconnected' | 'error' | 'pending';
   access_token?: string | null;
   refresh_token?: string | null;
-  expires_at?: string | number | null;
-  apple_music_user_token?: string | null;
+  token_expires_at?: string | number | null;
+  connection_data?: Record<string, unknown> | null;
 };

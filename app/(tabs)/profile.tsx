@@ -6,10 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { settings } from '@/src/lib/settings';
+import { getCurrentProfile } from '@/src/lib/user';
 
 const PROFILE_PLACEHOLDER = require('@/assets/images/blank-pfp.jpg');
 
 export default function ProfileScreen() {
+  const [displayName, setDisplayName] = React.useState('Profile');
+  const [username, setUsername] = React.useState('user');
+
+  React.useEffect(() => {
+    getCurrentProfile()
+      .then((profile) => {
+        if (!profile) return;
+        setDisplayName(profile.display_name);
+        setUsername(profile.username);
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
     <View className="flex-1 bg-[#f9f1e8] pt-safe">
       <ScrollView
@@ -24,12 +38,14 @@ export default function ProfileScreen() {
           <View className="flex-row items-center gap-4">
             <Image source={PROFILE_PLACEHOLDER} className="h-14 w-14 rounded-full" />
             <View>
-              <Text className="text-[20px] font-semibold text-[#3b2f28]">Ayaan</Text>
-              <Text className="text-[13px] text-[#a08474]">@ayaan</Text>
+              <Text className="text-[20px] font-semibold text-[#3b2f28]">{displayName}</Text>
+              <Text className="text-[13px] text-[#a08474]">@{username}</Text>
             </View>
           </View>
           <View className="pt-4">
-            <Button className="rounded-2xl">Edit profile</Button>
+            <Button className="rounded-2xl" onPress={() => router.push('/settings/account')}>
+              Edit profile
+            </Button>
           </View>
         </Card>
 

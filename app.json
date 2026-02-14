@@ -1,19 +1,20 @@
 {
   "expo": {
-    "name": "crossplay",
-    "slug": "crossplay",
+    "name": "Sostenuto",
+    "slug": "sostenuto",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "crossplay",
+    "scheme": "sostenuto",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nordicator.crossplay",
+      "bundleIdentifier": "ca.smallwoken.sostenuto",
       "appleTeamId": "464MGJA3HD"
     },
     "android": {
+      "package": "ca.smallwoken.sostenuto",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,6 +30,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-apple-music-remote",
       [
         "expo-splash-screen",
         {

@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import { ActivityIndicator, Alert, Platform, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,7 +102,11 @@ export function ConnectionsCard({ username }: ConnectionsCardProps) {
       return;
     }
 
-    WebBrowser.openBrowserAsync?.('/auth/apple');
+    try {
+      router.push('/auth/apple');
+    } catch {
+      WebBrowser.openBrowserAsync?.('/auth/apple');
+    }
   };
 
   return (

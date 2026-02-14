@@ -4,9 +4,10 @@ import * as React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 
 import { env } from '@/src/lib/env';
+import { getStoredUsername } from '@/src/lib/user';
 
 const SPOTIFY_VERIFIER_KEY = 'crossplay.spotify.code_verifier';
-const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
+const SPOTIFY_USER_ID_KEY = 'crossplay.spotify.user_id';
 
 export default function SpotifyCallbackScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
@@ -19,13 +20,14 @@ export default function SpotifyCallbackScreen() {
         return;
       }
 
-      const [codeVerifier, username] = await Promise.all([
+      const [codeVerifier, userId, username] = await Promise.all([
         AsyncStorage.getItem(SPOTIFY_VERIFIER_KEY),
-        AsyncStorage.getItem(SPOTIFY_USERNAME_KEY),
+        AsyncStorage.getItem(SPOTIFY_USER_ID_KEY),
+        getStoredUsername(),
       ]);
 
-      if (!codeVerifier || !username) {
-        setStatus('Missing stored verifier or username.');
+      if (!codeVerifier || !userId) {
+        setStatus('Missing stored verifier or user id.');
         return;
       }
 
@@ -36,6 +38,7 @@ export default function SpotifyCallbackScreen() {
           code,
           redirect_uri: env.spotifyRedirectUri(),
           code_verifier: codeVerifier,
+          user_id: userId,
           username,
         }),
       });
@@ -46,6 +49,7 @@ export default function SpotifyCallbackScreen() {
       }
 
       await AsyncStorage.removeItem(SPOTIFY_VERIFIER_KEY);
+      await AsyncStorage.removeItem(SPOTIFY_USER_ID_KEY);
       router.replace('/');
     };
 

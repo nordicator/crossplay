@@ -2,6 +2,14 @@ import { NativeModules, Platform } from 'react-native';
 
 const { AppleMusicRemote } = NativeModules;
 
+export type AppleNowPlaying = {
+  title: string | null;
+  artist: string | null;
+  albumTitle: string | null;
+  durationMs: number;
+  playbackState: number;
+};
+
 export const appleMusicRemote = {
   isAvailable: Platform.OS === 'ios' && Boolean(AppleMusicRemote),
   async requestAuthorization(): Promise<number> {
@@ -35,5 +43,9 @@ export const appleMusicRemote = {
   async seekTo(milliseconds: number): Promise<boolean> {
     if (!AppleMusicRemote) return false;
     return AppleMusicRemote.seekTo(milliseconds);
+  },
+  async getNowPlaying(): Promise<AppleNowPlaying | null> {
+    if (!AppleMusicRemote) return null;
+    return AppleMusicRemote.getNowPlaying();
   },
 };

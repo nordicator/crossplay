@@ -145,7 +145,7 @@ export default function SocialScreen() {
           <ActionRow icon="user" label="View profile" />
         </View>
 
-        <View className="items-center pt-4">
+        <View className="items-center pt-2">
           <Button variant="ghost" onPress={() => setSelected(null)}>
             Close
           </Button>

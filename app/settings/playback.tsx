@@ -10,11 +10,11 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { env } from '@/src/lib/env';
 import { generateCodeChallenge, generateCodeVerifier } from '@/src/lib/pkce';
-import { supabase } from '@/src/lib/supabase';
-import { getStoredUsername } from '@/src/lib/user';
+import { isProviderConnected } from '@/src/lib/streaming';
+import { getCurrentUserId, getStoredUsername } from '@/src/lib/user';
 
 const SPOTIFY_VERIFIER_KEY = 'crossplay.spotify.code_verifier';
-const SPOTIFY_USERNAME_KEY = 'crossplay.spotify.username';
+const SPOTIFY_USER_ID_KEY = 'crossplay.spotify.user_id';
 
 type Service = 'spotify' | 'apple';
 
@@ -31,40 +31,30 @@ export default function PlaybackSettingsScreen() {
   }, []);
 
   const refreshConnections = React.useCallback(async () => {
-    const trimmed = username.trim();
-    if (!trimmed) {
+    const userId = await getCurrentUserId();
+    if (!userId) {
       setSpotifyConnected(false);
       setAppleConnected(false);
       return;
     }
 
     const [spotifyResult, appleResult] = await Promise.all([
-      supabase
-        .from('connected_accounts')
-        .select('id')
-        .eq('provider', 'spotify')
-        .eq('username', trimmed)
-        .maybeSingle(),
-      supabase
-        .from('connected_accounts')
-        .select('id')
-        .eq('provider', 'apple')
-        .eq('username', trimmed)
-        .maybeSingle(),
+      isProviderConnected(userId, 'spotify'),
+      isProviderConnected(userId, 'apple_music'),
     ]);
 
-    setSpotifyConnected(Boolean(spotifyResult.data));
-    setAppleConnected(Boolean(appleResult.data));
-  }, [username]);
+    setSpotifyConnected(spotifyResult);
+    setAppleConnected(appleResult);
+  }, []);
 
   React.useEffect(() => {
     refreshConnections().catch(() => undefined);
   }, [refreshConnections]);
 
   const connectSpotify = async () => {
-    const trimmed = username.trim();
-    if (!trimmed) {
-      Alert.alert('Username required', 'Set a username in your profile first.');
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      Alert.alert('Sign in required', 'Sign in before connecting Spotify.');
       return;
     }
 
@@ -73,7 +63,7 @@ export default function PlaybackSettingsScreen() {
       const challenge = await generateCodeChallenge(verifier);
 
       await AsyncStorage.setItem(SPOTIFY_VERIFIER_KEY, verifier);
-      await AsyncStorage.setItem(SPOTIFY_USERNAME_KEY, trimmed);
+      await AsyncStorage.setItem(SPOTIFY_USER_ID_KEY, userId);
 
       const scopes = ['user-read-playback-state', 'user-modify-playback-state'].join(' ');
 
@@ -92,10 +82,10 @@ export default function PlaybackSettingsScreen() {
     }
   };
 
-  const connectApple = () => {
-    const trimmed = username.trim();
-    if (!trimmed) {
-      Alert.alert('Username required', 'Set a username in your profile first.');
+  const connectApple = async () => {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      Alert.alert('Sign in required', 'Sign in before connecting Apple Music.');
       return;
     }
 
@@ -132,7 +122,7 @@ export default function PlaybackSettingsScreen() {
           <Text className="text-[12px] text-[#9b7c6b]">
             {username.trim()
               ? 'Connections stay tied to your username.'
-              : 'Add a username in profile to enable connections.'}
+              : 'Connections are tied to your account.'}
           </Text>
 
           <View className="mt-4 gap-4">

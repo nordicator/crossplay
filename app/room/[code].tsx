@@ -19,7 +19,7 @@ import { fetchAppleDeveloperToken, searchAppleTracks } from '@/src/lib/providers
 import { ensureSpotifyAccessToken, searchSpotifyTracks } from '@/src/lib/providers/spotify';
 import { supabase } from '@/src/lib/supabase';
 import type { Room, UniversalTrack } from '@/src/lib/types';
-import { getOrCreateUser, getStoredUsername } from '@/src/lib/user';
+import { getCurrentUserId } from '@/src/lib/user';
 
 type Provider = 'spotify' | 'apple';
 
@@ -28,7 +28,6 @@ export default function RoomScreen() {
   const [room, setRoom] = React.useState<Room | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [username, setUsername] = React.useState<string | null>(null);
   const [userId, setUserId] = React.useState<string | null>(null);
   const [provider, setProvider] = React.useState<Provider>('spotify');
   const [query, setQuery] = React.useState('');
@@ -39,15 +38,8 @@ export default function RoomScreen() {
   const roomCode = Array.isArray(code) ? code[0] : code;
 
   React.useEffect(() => {
-    getStoredUsername().then(setUsername).catch(() => undefined);
+    getCurrentUserId().then(setUserId).catch(() => undefined);
   }, []);
-
-  React.useEffect(() => {
-    if (!username) return;
-    getOrCreateUser(username)
-      .then(({ user_id }) => setUserId(user_id))
-      .catch(() => undefined);
-  }, [username]);
 
   React.useEffect(() => {
     if (!roomCode) {
@@ -192,11 +184,11 @@ export default function RoomScreen() {
 
   const runSearch = async () => {
     const trimmed = query.trim();
-    if (!trimmed || !username) return;
+    if (!trimmed || !userId) return;
     setSearching(true);
     try {
       if (provider === 'spotify') {
-        const token = await ensureSpotifyAccessToken(username);
+        const token = await ensureSpotifyAccessToken(userId);
         const found = await searchSpotifyTracks(trimmed, token);
         setResults(found);
       } else {
@@ -213,6 +205,10 @@ export default function RoomScreen() {
 
   const setTrack = async (track: UniversalTrack) => {
     if (!room) return;
+    if (track.providers?.apple?.id && appleMusicRemote.isAvailable) {
+      await appleMusicRemote.requestAuthorization();
+      await appleMusicRemote.setQueue([track.providers.apple.id], false);
+    }
     const update = {
       current_track: track,
       is_playing: false,
