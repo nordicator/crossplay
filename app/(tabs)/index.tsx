@@ -19,13 +19,6 @@ const STATS = [
   { id: 'rooms', label: 'Rooms hosted', value: '5' },
 ];
 
-const TOP_TRACKS = [
-  { id: 't1', title: 'Soft Halo', artist: 'Nova Bloom', plays: '31 plays' },
-  { id: 't2', title: 'Coastline Eyes', artist: 'Solace', plays: '24 plays' },
-  { id: 't3', title: 'Amber Street', artist: 'Mira Vox', plays: '19 plays' },
-  { id: 't4', title: 'Daydream Drive', artist: 'Sable Day', plays: '14 plays' },
-];
-
 export default function HomeScreen() {
   const [playingTestTrack, setPlayingTestTrack] = React.useState(false);
   const [controlling, setControlling] = React.useState(false);
@@ -218,6 +211,38 @@ export default function HomeScreen() {
     }
   }, [nowPlaying, saveScrobble]);
 
+  const scrobbleTopTracks = React.useMemo(() => {
+    const counts = new Map<
+      string,
+      { id: string; title: string; artist: string; playsCount: number }
+    >();
+    for (const entry of scrobbles) {
+      const key = `${entry.title}|${entry.artist}`;
+      const existing = counts.get(key);
+      if (existing) {
+        existing.playsCount += 1;
+      } else {
+        counts.set(key, {
+          id: key,
+          title: entry.title,
+          artist: entry.artist,
+          playsCount: 1,
+        });
+      }
+    }
+    return Array.from(counts.values())
+      .sort((a, b) => b.playsCount - a.playsCount)
+      .slice(0, 4)
+      .map((track) => ({
+        id: `scrobble-${track.id}`,
+        title: track.title,
+        artist: track.artist,
+        plays: `${track.playsCount} plays`,
+      }));
+  }, [scrobbles]);
+
+  const mostListenedTracks = scrobbleTopTracks;
+
   return (
     <View className="flex-1 bg-[#f9f1e8] pt-safe">
       <ScrollView
@@ -320,20 +345,26 @@ export default function HomeScreen() {
 
         <Card className="px-4 py-4">
           <Text className="text-[18px] font-semibold text-[#3b2f28]">Most listened</Text>
-          <View className="mt-3 gap-3">
-            {TOP_TRACKS.map((track, index) => (
-              <View key={track.id} className="gap-2">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <Text className="text-[15px] font-semibold text-[#3b2f28]">{track.title}</Text>
-                    <Text className="text-[12px] text-[#a08474]">{track.artist}</Text>
+          {mostListenedTracks.length ? (
+            <View className="mt-3 gap-3">
+              {mostListenedTracks.map((track, index) => (
+                <View key={track.id} className="gap-2">
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1">
+                      <Text className="text-[15px] font-semibold text-[#3b2f28]">{track.title}</Text>
+                      <Text className="text-[12px] text-[#a08474]">{track.artist}</Text>
+                    </View>
+                    <Text className="text-[12px] text-[#b19787]">{track.plays}</Text>
                   </View>
-                  <Text className="text-[12px] text-[#b19787]">{track.plays}</Text>
+                  {index < mostListenedTracks.length - 1 ? <Separator /> : null}
                 </View>
-                {index < TOP_TRACKS.length - 1 ? <Separator /> : null}
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <Text className="mt-2 text-[12px] text-[#a08474]">
+              No listening history yet. Play a few tracks to build this list.
+            </Text>
+          )}
         </Card>
       </ScrollView>
     </View>

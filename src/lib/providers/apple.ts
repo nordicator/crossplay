@@ -2,9 +2,16 @@ import { env } from '@/src/lib/env';
 import type { UniversalTrack } from '@/src/lib/types';
 
 export async function fetchAppleDeveloperToken(): Promise<string> {
-  const response = await fetch(`${env.supabaseFunctionsBase()}/apple-developer-token`);
+  const anonKey = env.supabaseAnonKey();
+  const response = await fetch(`${env.supabaseFunctionsBase()}/apple-developer-token`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+  });
   if (!response.ok) {
-    throw new Error(`Apple developer token fetch failed: ${response.status}`);
+    const body = await response.text().catch(() => '');
+    throw new Error(`Apple developer token fetch failed: ${response.status} ${body}`.trim());
   }
   const payload = (await response.json()) as { token?: string };
   if (!payload.token) {

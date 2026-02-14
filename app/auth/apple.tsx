@@ -10,6 +10,22 @@ export default function AppleAuthScreen() {
   const [status, setStatus] = React.useState('Requesting Apple Music access...');
 
   React.useEffect(() => {
+    const describeError = (error: unknown): string => {
+      if (error instanceof Error) return error.message;
+      if (typeof error === 'string') return error;
+      if (error && typeof error === 'object') {
+        const maybe = error as { message?: unknown; localizedDescription?: unknown };
+        if (typeof maybe.message === 'string') return maybe.message;
+        if (typeof maybe.localizedDescription === 'string') return maybe.localizedDescription;
+        try {
+          return JSON.stringify(error);
+        } catch {
+          return 'Unknown object error';
+        }
+      }
+      return String(error);
+    };
+
     const run = async () => {
       if (!appleMusicRemote.isAvailable) {
         setStatus('Apple Music controls are not available on this device.');
@@ -38,13 +54,15 @@ export default function AppleAuthScreen() {
         userId,
         providerKey: 'apple_music',
         status: 'connected',
+      }).catch((error) => {
+        throw new Error(`Database save step failed: ${describeError(error)}`);
       });
 
       router.replace('/');
     };
 
     run().catch((error) => {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = describeError(error);
       setStatus(`Apple Music authorization failed: ${message}`);
     });
   }, []);
